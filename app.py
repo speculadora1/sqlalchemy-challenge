@@ -101,8 +101,7 @@ def stations():
 # START DATE ONLY ROUTE
 @climateApp.route("/api/v1.0/<startDate>")
 def startOnly(startDate):
-    """Fetch data on the min, max, and average temperature for all dates since startDate.
-    Return a 404 if there is an error."""
+    """Fetch data on the min, max, and average temperature for all dates since startDate."""
 
     # parse user input into datetime object
     parsedStart = dt.strptime(startDate, "%Y%m%d")
@@ -129,6 +128,38 @@ def startOnly(startDate):
         startDateSummary.append(tempDict)
         
     return jsonify(startDateSummary)
+
+# START TO END DATE ROUTE
+@climateApp.route("/api/v1.0/<startDate>/<endDate>")
+def startToEnd(startDate, endDate):
+    """Fetch data on the min, max, and average temperature for all dates between startDate and endDate."""
+
+    # parse user input into datetime object
+    parsedStart = dt.strptime(startDate, "%Y%m%d")
+    parsedEnd = dt.strptime(endDate, "%Y%m%d")
+    
+    # create session from python to database
+    session = Session(engine)
+    
+    # create list of values to select
+    sel = [func.min(Measurement.tobs),
+           func.max(Measurement.tobs),
+           func.avg(Measurement.tobs)]
+    
+    results = session.query(*sel).filter(Measurement.date >= parsedStart).filter(Measurement.date <= parsedEnd).all()
+    
+    session.close()
+    
+    # create a dictionary from the data and append it to a list
+    startToEndSummary = []
+    for minTemp, maxTemp, avgTemp in results:
+        tempDict = {}
+        tempDict["Minimum Temperature"] = minTemp
+        tempDict["Maximum Temperature"] = maxTemp
+        tempDict["Average Temperature"] = avgTemp
+        startToEndSummary.append(tempDict)
+        
+    return jsonify(startToEndSummary)
     
 # code to run app
 if __name__ == "__main__":
